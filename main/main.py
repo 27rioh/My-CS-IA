@@ -14,6 +14,9 @@ pygame.display.set_caption("Pygame Test")
 #For FPS
 clock = pygame.time.Clock()
 
+Duration = 30
+start_ticks = pygame.time.get_ticks() 
+
 scene = 1
 #Scene 1
 text_path = os.path.join("Assets","Fonts","Teko-Variable.ttf")
@@ -39,7 +42,8 @@ background_image = pygame.transform.scale(background_image, (1100, 700))
 
 cookbutton_rect = pygame.Rect(620,300,300,200)
 cookbutton_image = pygame.image.load("Assets/cookbutton.png").convert_alpha()
-cookbutton_hitbox = pygame.Rect(650,450,150,450)
+cookbutton_hitbox = pygame.Rect(650,450,450,150)
+
 
 speech_bubble_image = pygame.transform.scale(pygame.image.load("Assets/speechbubble.png").convert_alpha(),(450,300))
 speech_bubble_image_rect = pygame.Rect(600,100,450,300)
@@ -56,7 +60,6 @@ dialogue_index = 0
 #varaiables for dragging
 item_being_dragged = None
 
-
 Active_bowl_list = {"Broth":None,
                     "Noodle":None,
                     "Toppings":[]
@@ -65,7 +68,13 @@ Active_bowl_rect = pygame.Rect(350,380, 400, 300)
 
 nextbutton_rect = pygame.Rect(740,400,200,200)
 nextbutton_image = pygame.image.load("Assets/cookbutton.png").convert_alpha()
-nextbutton_hitbox = pygame.Rect(750,550,150,450)
+nextbutton_hitbox = pygame.Rect(750,550,450,150)
+
+#Scene 3
+finishbutton_image = pygame.image.load("Assets/cookbutton.png").convert_alpha()
+finishbutton_rect = pygame.Rect(620,300,300,200)
+finishbutton_hitbox = pygame.Rect(650,450,450,150)
+finished_serving = False
 
 Ramen_menu = {"Classic":{
                 "Broth": "Shoyu Broth",
@@ -142,9 +151,6 @@ class Customer:
         #if self.state == 1:
         pass
 
-    def score_calc(self):
-        pass
-
 
 customer_list = {"Sarah":{"Name":"Sarah","Patience":45},
                  "Nana":{"Name":"Nana", "Patience":50},
@@ -185,7 +191,7 @@ def Scene1_customer_talking():
     screen.blit(greeting_text,greeting_text_rect)
     screen.blit(cookbutton_image, cookbutton_rect)
 
-def Scene2_customer_talking():
+def Scene3_customer_talking():
     score_text = text_font.render("Score: "+ str(current_customer.current_score), True, (255,255,255))
     score_text_rect = score_text.get_rect(center = (810,220))
     feedback_text = text_font.render("Good job", True, (255,255,255))
@@ -193,8 +199,12 @@ def Scene2_customer_talking():
     screen.blit(speech_bubble_image, speech_bubble_image_rect)
     screen.blit(score_text,score_text_rect)
     screen.blit(feedback_text,feedback_text_rect)
+    screen.blit(finishbutton_image, finishbutton_rect)
 
-    
+def reset_bowl(bowl):
+    bowl["Broth"] = None
+    bowl["Noodle"] = None
+    bowl["Toppings"] = []
 
 
 
@@ -249,6 +259,7 @@ while running:
 
                     if cookbutton_hitbox.collidepoint(event.pos) and customer_is_talking is not True:
                         scene = 2
+                        dialogue_index = 0         
                         print ("now it's scene 2")
         elif scene == 2:
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -287,8 +298,14 @@ while running:
                     mouse_x, mouse_y = event.pos
                     item_being_dragged.rect.x = mouse_x + item_being_dragged.offset_x
                     item_being_dragged.rect.y = mouse_y + item_being_dragged.offset_y 
-                    
-    
+
+        elif scene == 3:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    if finishbutton_hitbox.collidepoint(event.pos):
+                        finished_serving = True
+                       
+    #めんだこ…takotako
 
     if scene == 1:
         if current_customer is None:
@@ -325,13 +342,25 @@ while running:
 
     if scene == 3:
         if customer_is_grading is False:
-            print("calling function")
             current_customer.check_order()
             customer_is_grading = True
         screen.blit(background_image, background_rect)
         screen.blit(current_customer_image, customer_rect)
         screen.blit(table_image, table_rect)
-        Scene2_customer_talking() 
+        Scene3_customer_talking() 
+
+        if finished_serving is True:       
+            target_x = -700
+            speed = 10
+            if customer_rect.x > target_x:
+                customer_rect.x -= speed
+            if customer_rect.x == target_x:
+                reset_bowl(Active_bowl_list)
+                finished_serving = False
+                current_customer = None
+                scene = 1
+
+
 
     
     
