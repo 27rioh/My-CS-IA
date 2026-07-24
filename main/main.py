@@ -14,7 +14,7 @@ pygame.display.set_caption("Pygame Test")
 #For FPS
 clock = pygame.time.Clock()
 
-Duration = 30
+duration = 30
 start_ticks = pygame.time.get_ticks() 
 
 scene = 1
@@ -24,9 +24,6 @@ text_font = pygame.font.Font(text_path,36)
 
 text_surface = text_font.render("Loading...", True, (0, 0, 0))
 text_rect = text_surface.get_rect(center=(550, 350))
-
-greeting_text = text_font.render("Hello",True, (0,0,0))
-greeting_rect = greeting_text.get_rect(center = (520,350))
 
 current_customer = None
 current_customer_name = None
@@ -55,6 +52,9 @@ table_image = pygame.transform.scale(table_image, (1100, 600))
 
 dialogue_index = 0
 
+current_score = 0
+total_score = 0
+
 
 #Scene 2
 #varaiables for dragging
@@ -75,6 +75,11 @@ finishbutton_image = pygame.image.load("Assets/cookbutton.png").convert_alpha()
 finishbutton_rect = pygame.Rect(620,300,300,200)
 finishbutton_hitbox = pygame.Rect(650,450,450,150)
 finished_serving = False
+
+#Scene 4
+restartbutton_image = pygame.image.load("Assets/cookbutton.png").convert_alpha()
+restartbutton_rect = pygame.Rect(400,300,450,150)
+restartbutton_hitbox = pygame.Rect(550,400,450,150)
 
 Ramen_menu = {"Classic":{
                 "Broth": "Shoyu Broth",
@@ -106,7 +111,6 @@ class Customer:
         self.order_noodle = None
         self.order_toppings = None
         self.order_price = None
-        self.current_score = 0
         self.image = pygame.image.load("Assets/"+name+".png").convert_alpha()
     
     def Make_order(self):
@@ -118,6 +122,8 @@ class Customer:
         self.order_price = menu_details["Price"]
 
     def check_order(self):
+        global current_score
+        global total_score
         print (current_customer.order_broth,current_customer.order_noodle, current_customer.order_toppings)
         print (Active_bowl_list["Broth"],Active_bowl_list["Noodle"],Active_bowl_list["Toppings"])
         right_broth = False
@@ -125,15 +131,15 @@ class Customer:
         if Active_bowl_list["Broth"] == current_customer.order_broth:
             print("right broth")
             right_broth = True
-            current_customer.current_score += 500
+            current_score += 500
         if Active_bowl_list["Noodle"] == current_customer.order_noodle:
             print("right noodle")
             right_noodle = True
-            current_customer.current_score += 500
+            current_score += 500
         if all(i in Active_bowl_list["Toppings"] for i in current_customer.order_toppings):
             print("all required topping is in here")
             if Counter(Active_bowl_list["Toppings"]) == Counter(current_customer.order_toppings) and right_broth and right_noodle:
-                current_customer.current_score += 1000
+                current_score += 1000
                 print("All are right")
 
             else:
@@ -141,15 +147,11 @@ class Customer:
                 missing = Counter(current_customer.order_toppings) - Counter(Active_bowl_list["Toppings"])
                 print(f"Missing: {missing} \n Extra: {extra})")
                 for i in extra:
-                    current_customer.current_score -= 100
+                    current_score -= 50
                 for i in missing:
-                    current_customer.current_score -= 100
-        print (current_customer.current_score)
+                    current_score -= 50
+        total_score += current_score
 
-
-    def patince_timer(self):
-        #if self.state == 1:
-        pass
 
 
 customer_list = {"Sarah":{"Name":"Sarah","Patience":45},
@@ -192,7 +194,7 @@ def Scene1_customer_talking():
     screen.blit(cookbutton_image, cookbutton_rect)
 
 def Scene3_customer_talking():
-    score_text = text_font.render("Score: "+ str(current_customer.current_score), True, (255,255,255))
+    score_text = text_font.render("Score: "+ str(current_score), True, (255,255,255))
     score_text_rect = score_text.get_rect(center = (810,220))
     feedback_text = text_font.render("Good job", True, (255,255,255))
     feedback_text_rect = feedback_text.get_rect(center = (810,270))
@@ -219,7 +221,7 @@ class Ingredients:
         self.rect = pygame.Rect(pos_x, pos_y, width, height)
         self.offset_x = 0
         self.offset_y = 0
-        self.image = pygame.transform.scale(pygame.image.load("Assets/Wavy Noodles.png"), (150, 150))
+        self.image = pygame.transform.scale(pygame.image.load("Assets/"+self.name+".png"), (150, 150))
 
 
 ingredients_list = {
@@ -244,10 +246,17 @@ for i in ingredients_list:
 # anything that keeps going during the game should be inside this loopp!
 running = True
 while running:
+    if scene != 4:
+        seconds_passed = (pygame.time.get_ticks() - start_ticks) / 1000
+        time_left = duration - seconds_passed
+        timer_text = text_font.render(f"Time: {time_left:.0f}", True, (255, 255, 255))
+    if time_left <= 0:
+        scene = 4
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        
+
+
         if scene == 1:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
@@ -304,6 +313,19 @@ while running:
                 if event.button == 1:
                     if finishbutton_hitbox.collidepoint(event.pos):
                         finished_serving = True
+        elif scene == 4:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    if restartbutton_hitbox.collidepoint(event.pos):
+                        start_ticks = pygame.time.get_ticks() 
+                        reset_bowl(Active_bowl_list)
+                        current_score = 0
+                        customer_is_grading = False
+                        finished_serving = False
+                        current_customer = None
+                        dialogue_index = 0
+                        scene = 1
+
                        
     #めんだこ…takotako
 
@@ -320,6 +342,7 @@ while running:
         screen.blit(background_image, background_rect)
         screen.blit(current_customer_image, customer_rect)
         screen.blit(table_image, table_rect)
+        screen.blit(timer_text, (80, 100))
 
         if customer_rect.x==target_x:
             customer_is_talking = True
@@ -339,6 +362,7 @@ while running:
             current_image = item.image  #current_image = (250,100,100) if is_dragging else button_color
             screen.blit(current_image, item.rect)
         screen.blit(nextbutton_image,nextbutton_rect)
+        screen.blit(timer_text, (100, 50))
 
     if scene == 3:
         if customer_is_grading is False:
@@ -347,6 +371,7 @@ while running:
         screen.blit(background_image, background_rect)
         screen.blit(current_customer_image, customer_rect)
         screen.blit(table_image, table_rect)
+        screen.blit(timer_text, (80, 100))
         Scene3_customer_talking() 
 
         if finished_serving is True:       
@@ -356,9 +381,17 @@ while running:
                 customer_rect.x -= speed
             if customer_rect.x == target_x:
                 reset_bowl(Active_bowl_list)
+                current_score = 0
+                customer_is_grading = False
                 finished_serving = False
                 current_customer = None
                 scene = 1
+    if scene == 4:
+        total_score_text = text_font.render(str(total_score),True, (0,0,0))
+        screen.blit(background_image, background_rect)
+        pygame.draw.rect(screen,(255,255,255), (400, 250, 350, 150))
+        screen.blit(total_score_text, (555, 300))
+        screen.blit(restartbutton_image, restartbutton_rect)
 
 
 
@@ -367,9 +400,7 @@ while running:
     pygame.display.flip() #display.flip updates entirely while update only changes the parts changed
     clock.tick(60) #60 FPS
 
-# Game logics
 
-#Images, Rerndering
 
 pygame.quit()
 sys.exit()
